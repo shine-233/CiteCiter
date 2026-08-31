@@ -18,6 +18,9 @@ export function RichAnswer({ text, streaming }) {
             if (segment.kind === 'html') {
                 return (_jsx("figure", { className: css.richFigure, "data-citeciter-html": true, children: _jsx("iframe", { className: css.richHtml, title: "CiteCiter HTML explanation", sandbox: "", referrerPolicy: "no-referrer", srcDoc: segment.document }) }, key));
             }
-            return _jsx(MarkdownText, { text: segment.text, streaming: streaming }, key);
+            return (_jsx(MarkdownText, { text: segment.text, streaming: streaming, labels: {
+                    code: { copyLabel: '复制代码', copiedLabel: '已复制' },
+                    footnotes: '脚注',
+                } }, key));
         }) }));
 }

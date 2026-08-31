@@ -36,6 +36,18 @@ page.on('console', (message) => {
 })
 const out = {}
 
+async function readFrameColumns() {
+  return await page.locator('body *').evaluateAll((elements) => {
+    const grids = elements.map((element) => {
+      const style = getComputedStyle(element)
+      const rect = element.getBoundingClientRect()
+      return { columns: style.gridTemplateColumns, display: style.display, area: rect.width * rect.height }
+    }).filter(({ display, columns, area }) => display === 'grid' && columns !== 'none' && area > 100_000)
+    grids.sort((left, right) => right.area - left.area)
+    return grids[0]?.columns ?? null
+  })
+}
+
 async function dismissOptionalPrompts() {
   for (const name of ['稍后配置', '继续']) {
     const button = page.getByRole('button', { name })
@@ -111,8 +123,7 @@ try {
     if (opened) break
     if (attempt === 2) throw new Error(`session "${sessionTitle}" did not render its assistant node after two selections`)
   }
-  const frame = page.locator('div[style*="grid-template-columns"]')
-  out.frameBefore = await frame.evaluate((el) => el.style.gridTemplateColumns)
+  out.frameBefore = await readFrameColumns()
   if (parentLogPath !== undefined) out.parentLogBefore = await readLogRevision(parentLogPath)
   out.dispatch = await page.evaluate(selectSourceText, { clientX: 220, clientY: 140 })
 
@@ -124,27 +135,26 @@ try {
   out.panelText = await page.locator('[data-citeciter-panel]').innerText()
   out.errorText = await page.locator('[data-citeciter-error]').count() > 0 ? await page.locator('[data-citeciter-error]').innerText() : null
   out.answerCount = await page.locator('[data-citeciter-answer]').count()
-  out.frameOpen = await frame.evaluate((el) => el.style.gridTemplateColumns)
+  out.frameOpen = await readFrameColumns()
   out.menuAfterClick = await page.locator('[data-citeciter-menu]').count()
 
   await page.getByRole('button', { name: 'Close' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') === null, null, { timeout: 5000 })
-  out.frameClosed = await frame.evaluate((el) => el.style.gridTemplateColumns)
+  out.frameClosed = await readFrameColumns()
 
   await page.evaluate(selectSourceText, { clientX: 260, clientY: 180 })
   await page.waitForFunction(() => document.querySelector('[data-citeciter-menu]') !== null, null, { timeout: 5000 })
   await page.getByRole('menuitem', { name: 'Citer!' }).click()
   await page.waitForFunction(() => document.querySelector('[data-citeciter-panel]') !== null, null, { timeout: 8000 })
   out.reopenPanelCount = await page.locator('[data-citeciter-panel]').count()
-  out.frameReopen = await frame.evaluate((el) => el.style.gridTemplateColumns)
+  out.frameReopen = await readFrameColumns()
   if (parentLogPath !== undefined) out.parentLogAfter = await readLogRevision(parentLogPath)
 } catch (error) {
   out.failure = String(error)
   out.bodyAtFailure = (await page.locator('body').innerText()).slice(0, 600)
   out.menuAtFailure = await page.locator('[data-citeciter-menu]').count()
   out.panelAtFailure = await page.locator('[data-citeciter-panel]').count()
-  const frame = page.locator('div[style*="grid-template-columns"]')
-  out.frameAtFailure = await frame.evaluate((el) => el.style.gridTemplateColumns)
+  out.frameAtFailure = await readFrameColumns().catch(() => null)
 }
 out.errors = errors.slice(0, 10)
 out.passed = out.failure === undefined

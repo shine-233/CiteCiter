@@ -1,8 +1,7 @@
-import type { ISessions, SessionId, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client';
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store';
+import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { CiteSelection } from './types.ts';
-/** User-visible lifecycle state of one explanation request. */
 export type ExplainPhase = 'idle' | 'creating' | 'ready' | 'running' | 'settled' | 'error';
-/** Immutable value observed by the CiteCiter panel. */
 export interface ExplainSnapshot {
     phase: ExplainPhase;
     childId: SessionId | null;
@@ -10,7 +9,17 @@ export interface ExplainSnapshot {
     answerText: string | null;
     error: string | null;
 }
-/** Observable actions owned by one CiteCiter plugin fiber. */
+export interface ExplainSource {
+    readonly sessionId: SessionId;
+    readonly atSeq: number;
+}
+export interface ExplainResult {
+    readonly childId: SessionId;
+    readonly answerText: string;
+}
+export interface ExplainTransport {
+    explain(source: ExplainSource, selection: CiteSelection, signal: AbortSignal): Promise<ExplainResult>;
+}
 export interface ExplainFace {
     getSnapshot(): ExplainSnapshot;
     subscribe(listener: () => void): () => void;
@@ -18,15 +27,5 @@ export interface ExplainFace {
     stop(): Promise<void>;
     dispose(): Promise<void>;
 }
-/**
- * Bind the explanation state machine to a supplied snapshot store.
- *
- * A parent or anchor change detaches the old child and forks a correctly scoped
- * one. Work is serialized so repeated selections cannot create parallel children, and disposal
- * invalidates every in-flight await before it can install another subscription.
- *
- * @param sessions - DSH browser session service.
- * @param store - plugin-owned observable state store.
- * @returns observable explainer state and lifecycle actions.
- */
-export declare function createExplainerController(sessions: ISessions, store: SnapshotStore<ExplainSnapshot>): ExplainFace;
+/** The Host owns the hidden fork and its history; the browser never stages it. */
+export declare function createExplainerController(resolveSource: (selection: CiteSelection) => ExplainSource, transport: ExplainTransport, store: SnapshotStore<ExplainSnapshot>): ExplainFace;

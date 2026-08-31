@@ -40,7 +40,17 @@ export function RichAnswer({ text, streaming }: RichAnswerProps) {
             </figure>
           )
         }
-        return <MarkdownText key={key} text={segment.text} streaming={streaming} />
+        return (
+          <MarkdownText
+            key={key}
+            text={segment.text}
+            streaming={streaming}
+            labels={{
+              code: { copyLabel: '复制代码', copiedLabel: '已复制' },
+              footnotes: '脚注',
+            }}
+          />
+        )
       })}
     </div>
   )

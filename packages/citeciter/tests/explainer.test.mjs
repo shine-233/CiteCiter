@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { turnEndError } from '../lib/types/index.js'
 import { readAssistantAnswer } from '../lib/types/client/answer.js'
 import { createExplainerController } from '../lib/types/client/explainer-controller.js'
 
@@ -11,25 +12,7 @@ const selection = (anchorKey = '14:assistant-step2:1', text = 'Riemann curvature
   y: 2,
 })
 
-const assistantNode = (
-  key,
-  anchorSeq,
-  text = 'source answer',
-  status = 'settled',
-  turnStatus = 'closed',
-) => ({
-  key,
-  kind: 'assistant-step',
-  anchorSeq,
-  location: {
-    kind: 'step',
-    turn: { status: turnStatus },
-    step: { status: status === 'running' ? 'open' : 'closed' },
-  },
-  data: { status, blocks: [{ kind: 'text', text }] },
-})
-
-function createExplainer(sessions) {
+function createStore() {
   let snapshot = {
     phase: 'idle',
     childId: null,
@@ -38,7 +21,7 @@ function createExplainer(sessions) {
     error: null,
   }
   const listeners = new Set()
-  return createExplainerController(sessions, {
+  return {
     getSnapshot: () => snapshot,
     subscribe(listener) {
       listeners.add(listener)
@@ -54,87 +37,35 @@ function createExplainer(sessions) {
       snapshot = next
       for (const listener of [...listeners]) listener()
     },
+  }
+}
+
+function createExplainer(resolveSource, explain) {
+  return createExplainerController(resolveSource, { explain }, createStore())
+}
+
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
   })
+  return { promise, resolve, reject }
 }
 
-function fakeSession(options = {}) {
-  let nodes = options.nodes ?? []
-  let running = options.running ?? false
-  const listeners = new Set()
-  const calls = { open: 0, command: 0, prompt: 0, cancel: 0 }
-  const session = {
-    calls,
-    get subscriberCount() { return listeners.size },
-    getSnapshot() {
-      return {
-        chat: { nodes: { get: (key) => nodes.find((node) => node.key === key), values: () => nodes } },
-        running,
-        promptError: null,
-        lastAgentError: null,
-      }
+test('Host preserves a structured DSH turn failure for the client', () => {
+  const error = turnEndError({
+    kind: 'error',
+    error: {
+      message: 'no API key for provider route "deepseek-official"',
+      code: 'MISSING_CREDENTIAL',
     },
-    subscribe(listener) {
-      listeners.add(listener)
-      return () => listeners.delete(listener)
-    },
-    async open() { calls.open++ },
-    async command() {
-      calls.command++
-      return options.permission ?? { ok: true, value: { matched: true } }
-    },
-    async prompt() {
-      calls.prompt++
-      running = true
-      return { ok: true, value: { accepted: true } }
-    },
-    async cancel() {
-      calls.cancel++
-      if (options.cancel !== undefined) return options.cancel()
-      running = false
-      return { ok: true, value: { accepted: true } }
-    },
-    publish(nextNodes, nextRunning = false) {
-      nodes = nextNodes
-      running = nextRunning
-      for (const listener of [...listeners]) listener()
-    },
-  }
-  return session
-}
+  })
 
-function fakeSessions(sessionFactory = () => fakeSession()) {
-  let current = 'parent-a'
-  let serial = 0
-  const children = new Map()
-  const parents = new Map([
-    ['parent-a', fakeSession({ nodes: [
-      assistantNode('14:assistant-step2:1', 42),
-      assistantNode('14:assistant-step4:1', 70),
-    ] })],
-    ['parent-b', fakeSession({ nodes: [assistantNode('14:assistant-step3:1', 90)] })],
-  ])
-  const forks = []
-  let bindingCalls = 0
-  return {
-    forks,
-    children,
-    parents,
-    get bindingCalls() { return bindingCalls },
-    setCurrent(id) { current = id },
-    list: { getSnapshot: () => ({ current }) },
-    async fork(opts) {
-      forks.push(opts)
-      const id = `child-${++serial}`
-      children.set(id, sessionFactory(id))
-      return id
-    },
-    binding(id) {
-      bindingCalls++
-      const session = parents.get(id) ?? children.get(id)
-      return session === undefined ? undefined : { session }
-    },
-  }
-}
+  assert.equal(error?.message, 'no API key for provider route "deepseek-official" [MISSING_CREDENTIAL]')
+  assert.equal(turnEndError({ kind: 'completed' }), undefined)
+})
 
 test('explainer reads newly streamed assistant text before settlement', () => {
   assert.deepEqual(readAssistantAnswer({
@@ -163,165 +94,121 @@ test('explainer recognizes settled and interrupted output but ignores empty/non-
   assert.equal(readAssistantAnswer({ status: 'unknown', blocks: [{ kind: 'text', text: 'ignore' }] }), null)
 })
 
-test('an unavailable or running source node cannot fork an arbitrary prefix', async () => {
-  const missingSessions = fakeSessions()
-  const missingExplainer = createExplainer(missingSessions)
-  await missingExplainer.start(selection('14:assistant-step99:1', 'missing'))
-  assert.equal(missingSessions.forks.length, 0)
-  assert.match(missingExplainer.getSnapshot().error, /context is no longer available/)
-
-  const runningSessions = fakeSessions()
-  runningSessions.parents.get('parent-a').publish([
-    assistantNode('14:assistant-step2:1', 42, 'partial', 'running', 'open'),
-  ], true)
-  const runningExplainer = createExplainer(runningSessions)
-  await runningExplainer.start(selection())
-  assert.equal(runningSessions.forks.length, 0)
-  assert.match(runningExplainer.getSnapshot().error, /response is not complete/)
-
-  const openTurnSessions = fakeSessions()
-  openTurnSessions.parents.get('parent-a').publish([
-    assistantNode('14:assistant-step2:1', 42, 'settled step in an open turn', 'settled', 'open'),
-  ], true)
-  const openTurnExplainer = createExplainer(openTurnSessions)
-  await openTurnExplainer.start(selection())
-  assert.equal(openTurnSessions.forks.length, 0)
-  assert.match(openTurnExplainer.getSnapshot().error, /turn is not complete/)
-})
-
-test('read-only failure blocks the model-visible explanation prompt', async () => {
-  const child = fakeSession({ permission: { ok: false, error: { message: 'denied' } } })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
+test('a successful Host explanation publishes the child and complete answer', async () => {
+  const calls = []
+  const explainer = createExplainer(
+    () => ({ sessionId: 'parent-a', atSeq: 42 }),
+    async (source, picked, signal) => {
+      calls.push({ source, picked, signal })
+      return { childId: 'child-1', answerText: 'A curvature measure.' }
+    },
+  )
 
   await explainer.start(selection())
 
-  assert.equal(child.calls.command, 1)
-  assert.equal(child.calls.prompt, 0)
+  assert.equal(calls.length, 1)
+  assert.deepEqual(calls[0].source, { sessionId: 'parent-a', atSeq: 42 })
+  assert.equal(calls[0].picked.text, 'Riemann curvature tensor')
+  assert.equal(explainer.getSnapshot().phase, 'settled')
+  assert.equal(explainer.getSnapshot().childId, 'child-1')
+  assert.equal(explainer.getSnapshot().answerText, 'A curvature measure.')
+})
+
+test('source validation failure prevents any Host request', async () => {
+  let calls = 0
+  const explainer = createExplainer(
+    () => { throw new Error('selected assistant turn is not complete') },
+    async () => {
+      calls++
+      return { childId: 'never', answerText: 'never' }
+    },
+  )
+
+  await explainer.start(selection())
+
+  assert.equal(calls, 0)
   assert.equal(explainer.getSnapshot().phase, 'error')
-  assert.match(explainer.getSnapshot().error, /read-only switch failed: denied/)
+  assert.match(explainer.getSnapshot().error, /turn is not complete/)
 })
 
-test('an unrecognized permission command blocks the explanation prompt', async () => {
-  const child = fakeSession({ permission: { ok: true, value: { matched: false } } })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
+test('Host errors are surfaced without a false settled answer', async () => {
+  const explainer = createExplainer(
+    () => ({ sessionId: 'parent-a', atSeq: 42 }),
+    async () => { throw new Error('read-only switch failed: permission command was not recognized') },
+  )
 
   await explainer.start(selection())
 
-  assert.equal(child.calls.prompt, 0)
+  assert.equal(explainer.getSnapshot().phase, 'error')
+  assert.equal(explainer.getSnapshot().answerText, null)
   assert.match(explainer.getSnapshot().error, /permission command was not recognized/)
 })
 
-test('a repeated explanation ignores the preceding assistant answer', async () => {
-  const child = fakeSession()
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
+test('a newer selection aborts the old Host request before it starts', async () => {
+  const first = deferred()
+  const calls = []
+  const explainer = createExplainer(
+    picked => ({ sessionId: 'parent-a', atSeq: picked.anchorKey.endsWith('2:1') ? 42 : 70 }),
+    (source, picked, signal) => {
+      calls.push({ source, picked, signal })
+      if (calls.length === 1) {
+        signal.addEventListener('abort', () => first.reject(signal.reason), { once: true })
+        return first.promise
+      }
+      return Promise.resolve({ childId: 'child-2', answerText: 'second answer' })
+    },
+  )
 
-  await explainer.start(selection())
-  child.publish([
-    assistantNode('14:assistant-step3:1', 50, 'first answer'),
-  ])
-  assert.equal(explainer.getSnapshot().answerText, 'first answer')
+  const firstStart = explainer.start(selection())
+  await Promise.resolve()
+  const secondStart = explainer.start(selection('14:assistant-step4:1', 'Ricci contraction'))
+  await Promise.all([firstStart, secondStart])
 
-  await explainer.start(selection('14:assistant-step2:1', 'Ricci contraction'))
-  assert.equal(sessions.forks.length, 1)
-  assert.equal(child.calls.prompt, 2)
-  assert.equal(explainer.getSnapshot().phase, 'running')
-  assert.equal(explainer.getSnapshot().answerText, null)
-
-  child.publish([
-    assistantNode('14:assistant-step3:1', 50, 'first answer'),
-    assistantNode('14:assistant-step4:1', 60, 'second answer', 'running', 'open'),
-  ], true)
+  assert.equal(calls.length, 2)
+  assert.equal(calls[0].signal.aborted, true)
+  assert.equal(calls[1].source.atSeq, 70)
   assert.equal(explainer.getSnapshot().answerText, 'second answer')
 })
 
-test('different real conversation keys with the same kind-length prefix fork at their node sequences', async () => {
-  const sessions = fakeSessions()
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection('14:assistant-step2:1', 'first turn'))
-  const first = sessions.children.get('child-1')
-  await explainer.start(selection('14:assistant-step4:1', 'later turn'))
-  const second = sessions.children.get('child-2')
-
-  assert.deepEqual(sessions.forks, [
-    { sessionId: 'parent-a', atSeq: 42 },
-    { sessionId: 'parent-a', atSeq: 70 },
-  ])
-  assert.equal(first.subscriberCount, 0)
-  assert.equal(second.subscriberCount, 1)
-})
-
-test('changing the selected parent detaches the old child and forks a new child', async () => {
-  const sessions = fakeSessions()
-  const explainer = createExplainer(sessions)
-
-  await explainer.start(selection())
-  const first = sessions.children.get('child-1')
-  assert.equal(first.subscriberCount, 1)
-
-  sessions.setCurrent('parent-b')
-  await explainer.start(selection('14:assistant-step3:1', 'new parent term'))
-  const second = sessions.children.get('child-2')
-
-  assert.deepEqual(sessions.forks.map(({ sessionId }) => sessionId), ['parent-a', 'parent-b'])
-  assert.equal(first.subscriberCount, 0)
-  assert.equal(second.subscriberCount, 1)
-  assert.equal(explainer.getSnapshot().childId, 'child-2')
-})
-
-test('dispose invalidates an in-flight fork before it can bind or prompt', async () => {
-  let resolveFork
-  const forked = new Promise((resolve) => { resolveFork = resolve })
-  let bindingCalls = 0
-  const parent = fakeSession({ nodes: [assistantNode('14:assistant-step2:1', 42)] })
-  const sessions = {
-    list: { getSnapshot: () => ({ current: 'parent-a' }) },
-    fork: () => forked,
-    binding(id) {
-      if (id === 'parent-a') return { session: parent }
-      bindingCalls++
-      return { session: fakeSession() }
+test('stop aborts the active Host request and waits for quiescence', async () => {
+  const gate = deferred()
+  let signal
+  const explainer = createExplainer(
+    () => ({ sessionId: 'parent-a', atSeq: 42 }),
+    (_source, _picked, activeSignal) => {
+      signal = activeSignal
+      activeSignal.addEventListener('abort', () => gate.resolve({ childId: 'cancelled', answerText: '' }), { once: true })
+      return gate.promise
     },
-  }
-  const explainer = createExplainer(sessions)
+  )
   const started = explainer.start(selection())
   await Promise.resolve()
 
-  const disposing = explainer.dispose()
-  let disposeSettled = false
-  void disposing.then(() => { disposeSettled = true })
-  await Promise.resolve()
-  assert.equal(disposeSettled, false)
-
-  resolveFork('child-late')
-  await disposing
+  await explainer.stop()
   await started
 
-  assert.equal(disposeSettled, true)
-  assert.equal(bindingCalls, 0)
+  assert.equal(signal.aborted, true)
+  assert.equal(explainer.getSnapshot().phase, 'ready')
+  assert.equal(explainer.getSnapshot().answerText, null)
 })
 
-test('dispose waits for an accepted cancellation to reach quiescence', async () => {
-  let resolveCancel
-  const cancelled = new Promise((resolve) => { resolveCancel = resolve })
-  const child = fakeSession({ cancel: () => cancelled })
-  const sessions = fakeSessions(() => child)
-  const explainer = createExplainer(sessions)
-  await explainer.start(selection())
-
-  const stopping = explainer.stop()
+test('dispose aborts the request and ignores its late result', async () => {
+  const gate = deferred()
+  let signal
+  const explainer = createExplainer(
+    () => ({ sessionId: 'parent-a', atSeq: 42 }),
+    (_source, _picked, activeSignal) => {
+      signal = activeSignal
+      activeSignal.addEventListener('abort', () => gate.resolve({ childId: 'late', answerText: 'late answer' }), { once: true })
+      return gate.promise
+    },
+  )
+  const started = explainer.start(selection())
   await Promise.resolve()
-  const disposing = explainer.dispose()
-  let disposeSettled = false
-  void disposing.then(() => { disposeSettled = true })
-  await Promise.resolve()
-  assert.equal(disposeSettled, false)
 
-  resolveCancel({ ok: true, value: { accepted: true } })
-  await stopping
-  await disposing
-  assert.equal(disposeSettled, true)
+  await explainer.dispose()
+  await started
+
+  assert.equal(signal.aborted, true)
+  assert.equal(explainer.getSnapshot().answerText, null)
 })

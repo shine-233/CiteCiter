@@ -1,17 +1,9 @@
-import type {
-  ISessions,
-  SessionFace,
-  SessionId,
-  SnapshotStore,
-} from '@deepseek-ai/dsh-client-runtime/client'
-import { readAssistantAnswer, type AssistantAnswer } from './answer.ts'
-import { buildPrompt } from './prompt.ts'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { CiteSelection } from './types.ts'
 
-/** User-visible lifecycle state of one explanation request. */
 export type ExplainPhase = 'idle' | 'creating' | 'ready' | 'running' | 'settled' | 'error'
 
-/** Immutable value observed by the CiteCiter panel. */
 export interface ExplainSnapshot {
   phase: ExplainPhase
   childId: SessionId | null
@@ -20,7 +12,20 @@ export interface ExplainSnapshot {
   error: string | null
 }
 
-/** Observable actions owned by one CiteCiter plugin fiber. */
+export interface ExplainSource {
+  readonly sessionId: SessionId
+  readonly atSeq: number
+}
+
+export interface ExplainResult {
+  readonly childId: SessionId
+  readonly answerText: string
+}
+
+export interface ExplainTransport {
+  explain(source: ExplainSource, selection: CiteSelection, signal: AbortSignal): Promise<ExplainResult>
+}
+
 export interface ExplainFace {
   getSnapshot(): ExplainSnapshot
   subscribe(listener: () => void): () => void
@@ -29,40 +34,19 @@ export interface ExplainFace {
   dispose(): Promise<void>
 }
 
-/** The public session face omits the idempotent history-window opener implemented by Session. */
-type OpenableSession = SessionFace & {
-  open(): Promise<void>
-}
-
-/**
- * Bind the explanation state machine to a supplied snapshot store.
- *
- * A parent or anchor change detaches the old child and forks a correctly scoped
- * one. Work is serialized so repeated selections cannot create parallel children, and disposal
- * invalidates every in-flight await before it can install another subscription.
- *
- * @param sessions - DSH browser session service.
- * @param store - plugin-owned observable state store.
- * @returns observable explainer state and lifecycle actions.
- */
+/** The Host owns the hidden fork and its history; the browser never stages it. */
 export function createExplainerController(
-  sessions: ISessions,
+  resolveSource: (selection: CiteSelection) => ExplainSource,
+  transport: ExplainTransport,
   store: SnapshotStore<ExplainSnapshot>,
 ): ExplainFace {
-  let child: OpenableSession | null = null
-  let parentId: SessionId | null = null
-  let forkSeq: number | null = null
-  let unsubscribeChild: (() => void) | null = null
   let disposed = false
-  let epoch = 0
-  let startQueue = Promise.resolve()
-  let stopQueue = Promise.resolve()
-  const baselineAssistantKeys = new Set<string>()
+  let active: { readonly abort: AbortController; readonly done: Promise<void> } | null = null
+  let queue = Promise.resolve()
 
   const update = (mutator: (draft: ExplainSnapshot) => void) => {
     if (!disposed) store.update(mutator)
   }
-
   const fail = (error: unknown) => {
     update((draft) => {
       draft.phase = 'error'
@@ -70,240 +54,71 @@ export function createExplainerController(
     })
   }
 
-  const isActive = (operationEpoch: number) => !disposed && operationEpoch === epoch
-
-  const detachChild = () => {
-    epoch++
-    unsubscribeChild?.()
-    unsubscribeChild = null
-    child = null
-    parentId = null
-    forkSeq = null
-    baselineAssistantKeys.clear()
-  }
-
-  const updateFromChild = () => {
-    const session = child
-    if (session === null || disposed) return
-    const snapshot = session.getSnapshot()
-    let answer: (AssistantAnswer & { readonly anchorSeq: number }) | null = null
-    for (const node of snapshot.chat.nodes.values()) {
-      if (node.kind !== 'assistant-step' || baselineAssistantKeys.has(node.key)) continue
-      const candidate = readAssistantAnswer(node.data)
-      if (candidate !== null && (answer === null || node.anchorSeq >= answer.anchorSeq)) {
-        answer = { ...candidate, anchorSeq: node.anchorSeq }
-      }
-    }
-    if (answer !== null) {
+  const stop = async () => {
+    const operation = active
+    if (operation === null) return
+    operation.abort.abort()
+    await operation.done.catch(() => {})
+    if (!disposed) {
       update((draft) => {
-        draft.phase = answer.status === 'running' ? 'running' : 'settled'
-        draft.answerText = answer.text
+        draft.phase = 'ready'
         draft.error = null
       })
-      return
-    }
-    if (snapshot.promptError !== null) {
-      fail(snapshot.promptError.error.message)
-      return
-    }
-    if (snapshot.lastAgentError !== null) {
-      fail(snapshot.lastAgentError)
-      return
-    }
-    if (snapshot.running) {
-      update((draft) => {
-        draft.phase = 'running'
-      })
     }
   }
 
-  const rememberAssistantKeys = (session: OpenableSession) => {
-    for (const node of session.getSnapshot().chat.nodes.values()) {
-      if (node.kind === 'assistant-step') baselineAssistantKeys.add(node.key)
-    }
-  }
-
-  const attachChild = (session: OpenableSession, sourceId: SessionId, atSeq: number) => {
-    child = session
-    parentId = sourceId
-    forkSeq = atSeq
-    baselineAssistantKeys.clear()
-    rememberAssistantKeys(session)
-    unsubscribeChild = session.subscribe(updateFromChild)
-  }
-
-  const prompt = async (selection: CiteSelection, operationEpoch: number) => {
-    const session = child
-    if (session === null || !isActive(operationEpoch)) return
-    rememberAssistantKeys(session)
+  const run = async (selection: CiteSelection) => {
+    if (disposed) return
     update((draft) => {
-      draft.phase = 'running'
+      draft.phase = 'creating'
+      draft.childId = null
       draft.selection = selection
       draft.answerText = null
       draft.error = null
     })
-    let result
+    let source: ExplainSource
     try {
-      result = await session.prompt([{
-        type: 'text' as const,
-        text: buildPrompt(selection),
-      }], 'queue')
+      source = resolveSource(selection)
     } catch (error) {
-      if (isActive(operationEpoch)) fail(error)
+      fail(error)
       return
     }
-    if (!isActive(operationEpoch)) return
-    if (!result.ok) {
-      fail(result.error.message)
-      return
-    }
-    updateFromChild()
-  }
-
-  const runStart = async (selection: CiteSelection) => {
-    if (disposed) return
-    const current = sessions.list.getSnapshot().current
-    if (current === undefined) {
-      fail('no current session')
-      return
-    }
-    update((draft) => {
-      draft.selection = selection
-      draft.error = null
-    })
-    const sourceBinding = sessions.binding(current)
-    if (sourceBinding === undefined) {
-      fail(`current session "${current}" is not locally addressable`)
-      return
-    }
-    const sourceNode = sourceBinding.session.getSnapshot().chat.nodes.get(selection.anchorKey)
-    if (sourceNode === undefined || sourceNode.kind !== 'assistant-step') {
-      fail('selected assistant context is no longer available')
-      return
-    }
-    const sourceAnswer = readAssistantAnswer(sourceNode.data)
-    if (sourceAnswer === null || sourceAnswer.status === 'running') {
-      fail('selected assistant response is not complete')
-      return
-    }
-    if (sourceNode.location.kind !== 'step' || sourceNode.location.turn.status !== 'closed') {
-      fail('selected assistant turn is not complete')
-      return
-    }
-    const atSeq = sourceNode.anchorSeq
-    if (child !== null && parentId === current && forkSeq === atSeq) {
-      await prompt(selection, epoch)
-      return
-    }
-    if (child !== null) {
-      detachChild()
+    const abort = new AbortController()
+    const done = (async () => {
+      update((draft) => { draft.phase = 'running' })
+      const result = await transport.explain(source, selection, abort.signal)
+      if (disposed || abort.signal.aborted) return
       update((draft) => {
-        draft.phase = 'idle'
-        draft.childId = null
-        draft.answerText = null
+        draft.phase = 'settled'
+        draft.childId = result.childId
+        draft.answerText = result.answerText
+        draft.error = null
       })
-    }
-    update((draft) => {
-      draft.phase = 'creating'
-    })
-    const operationEpoch = epoch
-    let childId: SessionId
+    })()
+    active = { abort, done }
     try {
-      childId = await sessions.fork({ sessionId: current, atSeq })
+      await done
     } catch (error) {
-      if (isActive(operationEpoch)) fail(error)
-      return
+      if (!abort.signal.aborted) fail(error)
+    } finally {
+      if (active?.done === done) active = null
     }
-    if (!isActive(operationEpoch)) return
-    const binding = sessions.binding(childId)
-    if (binding === undefined) {
-      fail(`fork child "${childId}" is not locally addressable`)
-      return
-    }
-    const session = binding.session as OpenableSession
-    try {
-      await session.open()
-    } catch (error) {
-      if (isActive(operationEpoch)) fail(error)
-      return
-    }
-    if (!isActive(operationEpoch)) return
-    attachChild(session, current, atSeq)
-    update((draft) => {
-      draft.childId = childId
-      draft.phase = 'ready'
-    })
-    let permission
-    try {
-      permission = await session.command('/permission read-only')
-    } catch (error) {
-      if (isActive(operationEpoch)) fail(error)
-      return
-    }
-    if (!isActive(operationEpoch)) return
-    if (!permission.ok) {
-      fail(`read-only switch failed: ${permission.error.message}`)
-      return
-    }
-    if (!permission.value.matched) {
-      fail('read-only switch failed: permission command was not recognized')
-      return
-    }
-    await prompt(selection, operationEpoch)
   }
 
   const start = (selection: CiteSelection) => {
     if (disposed) return Promise.resolve()
-    const task = startQueue.then(async () => {
-      try {
-        await runStart(selection)
-      } catch (error) {
-        fail(error)
-      }
-    })
-    startQueue = task
-    return task
-  }
-
-  const runStop = async () => {
-    const session = child
-    const operationEpoch = epoch
-    if (session === null || !isActive(operationEpoch)) return
-    try {
-      const result = await session.cancel()
-      if (!isActive(operationEpoch)) return
-      if (!result.ok) {
-        fail(result.error.message)
-        return
-      }
-    } catch (error) {
-      if (isActive(operationEpoch)) fail(error)
-      return
-    }
-    update((draft) => {
-      draft.phase = 'ready'
-    })
-  }
-
-  const stop = () => {
-    if (disposed) return Promise.resolve()
-    const task = stopQueue.then(async () => {
-      try {
-        await runStop()
-      } catch (error) {
-        fail(error)
-      }
-    })
-    stopQueue = task
+    active?.abort.abort()
+    const task = queue.then(() => run(selection))
+    queue = task.catch(() => {})
     return task
   }
 
   const dispose = async () => {
-    if (!disposed) {
-      detachChild()
-      disposed = true
-    }
-    await Promise.all([startQueue, stopQueue])
+    if (disposed) return
+    disposed = true
+    const operation = active
+    operation?.abort.abort()
+    await Promise.allSettled([queue, operation?.done ?? Promise.resolve()])
   }
 
   return {

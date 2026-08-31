@@ -6,15 +6,18 @@ import { CiteBus } from "./types.js";
 /** Cordis identity for the CiteCiter browser plugin. */
 export const name = '@kirkchinese/dsh-citeciter';
 /** Hard dependencies whose appearance activates the browser fiber. */
-export const inject = ['layout', 'slots', 'sessions'];
+export const inject = ['layout', 'slots', 'sessions', 'uiConversation'];
 /**
  * Register the selection listener, overlay entry, and details-panel lifecycle.
  * @param ctx - Cordis browser context with layout, slots, and sessions services.
  */
 export function apply(ctx) {
-    const { layout, sessions, slots } = ctx;
+    const { layout } = ctx;
+    const sessions = Reflect.get(ctx, 'sessions');
+    const slots = Reflect.get(ctx, 'slots');
+    const uiConversation = Reflect.get(ctx, 'uiConversation');
     const bus = new CiteBus((error) => ctx.logger.warn('citeciter selection listener failed', error));
-    const explainer = createExplainer(sessions);
+    const explainer = createExplainer(sessions, uiConversation);
     let detailsInjectController = null;
     let detailsDisposer = null;
     let panelOpen = false;

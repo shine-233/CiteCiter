@@ -12,5 +12,5 @@ test('published package declares an installable DSH bundle', async () => {
   assert.equal(manifest.private, undefined)
   assert.equal(manifest.dsh?.bundle?.patch, './cordis.patch.yml')
   assert.ok(manifest.files.includes('cordis.patch.yml'))
-  assert.equal(patch, "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
+  assert.equal(patch.replaceAll('\r\n', '\n'), "- insert:\n    - id: citeciter\n      name: '@kirkchinese/dsh-citeciter'\n")
 })

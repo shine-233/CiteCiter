@@ -1,12 +1,7 @@
-/**
- * Host loader entry for the browser-only CiteCiter plugin.
- * Deliberately no-op: the browser half (`./client`) owns the whole feature,
- * and the plugin registers no process-level Host service (the known
- * Cordis duplicate-service trap therefore cannot trigger).
- */
-/** Cordis plugin identity shared with the browser bundle. */
+import type { Context } from '@deepseek-ai/cordis';
+import type { TurnEndReason } from '@deepseek-ai/dsh-session';
 export declare const name = "@kirkchinese/dsh-citeciter";
-/** CiteCiter has no Host service dependencies. */
-export declare const inject: readonly [];
-/** Register no Host effects; all behavior belongs to the browser plugin. */
-export declare function apply(): void;
+export declare const inject: string[];
+export declare const EXPLAIN_PATH = "/api/citeciter.explain";
+export declare function turnEndError(reason: TurnEndReason): Error | undefined;
+export declare function apply(ctx: Context): void;

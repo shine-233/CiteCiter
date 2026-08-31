@@ -6,8 +6,12 @@
  * read-only forked explainer session.
  */
 import type { Context } from '@deepseek-ai/cordis'
-import type {} from '@deepseek-ai/dsh-client-runtime/client'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { UiConversation } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { SelectionMenu } from './components/SelectionMenu.tsx'
 import { createExplainer } from './explainer.ts'
 import { CitePanel } from './components/CitePanel.tsx'
@@ -18,16 +22,19 @@ import { CiteBus, type CiteSelection } from './types.ts'
 export const name = '@kirkchinese/dsh-citeciter'
 
 /** Hard dependencies whose appearance activates the browser fiber. */
-export const inject = ['layout', 'slots', 'sessions']
+export const inject = ['layout', 'slots', 'sessions', 'uiConversation']
 
 /**
  * Register the selection listener, overlay entry, and details-panel lifecycle.
  * @param ctx - Cordis browser context with layout, slots, and sessions services.
  */
 export function apply(ctx: Context): void {
-  const { layout, sessions, slots } = ctx
+  const { layout } = ctx
+  const sessions = Reflect.get(ctx, 'sessions') as unknown as ISessions
+  const slots = Reflect.get(ctx, 'slots') as SlotRegistry
+  const uiConversation = Reflect.get(ctx, 'uiConversation') as UiConversation
   const bus = new CiteBus((error) => ctx.logger.warn('citeciter selection listener failed', error))
-  const explainer = createExplainer(sessions)
+  const explainer = createExplainer(sessions, uiConversation)
   let detailsInjectController: (() => void) | null = null
   let detailsDisposer: (() => void) | null = null
   let panelOpen = false

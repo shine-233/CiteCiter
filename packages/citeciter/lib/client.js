@@ -6,10 +6,10 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
-		let _deepseek_ai_dsh_client_runtime_client = require("@deepseek-ai/dsh-client-runtime/client");
+		let _deepseek_ai_dsh_client_store = require("@deepseek-ai/dsh-client-store");
 		let _deepseek_ai_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
-		//#region \0dsh-css:src/client/components/CiteCiter.module.css.mjs
-		const css = "._1Fxyxa_menu{z-index:9999;max-width:min(520px,100vw - 32px);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-module,#fff);border:1px solid var(--dsw-alias-border-l1,#ddd);box-shadow:var(--dsw-shadow-lv2,0 8px 24px #0000001f);pointer-events:auto;border-radius:10px;align-items:center;gap:8px;padding:8px 10px;display:flex;position:fixed}._1Fxyxa_menuPreview{text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:18px;overflow:hidden}._1Fxyxa_menuButton{color:#fff;cursor:pointer;background:var(--dsw-static-deepseek-500,#4d6bfe);border:none;border-radius:8px;flex:none;padding:4px 10px;font-size:13px;line-height:18px}._1Fxyxa_panel{flex-direction:column;height:100%;padding:12px;display:flex;overflow-y:auto}._1Fxyxa_panelHeader{flex:none;justify-content:space-between;align-items:center;display:flex}._1Fxyxa_panelTitle{font-size:14px;font-weight:500}._1Fxyxa_closeButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary,#555);cursor:pointer;background:0 0;border:none;border-radius:999px;font-size:18px;line-height:1}._1Fxyxa_closeButton:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000a)}._1Fxyxa_panelBody{flex-direction:column;gap:12px;padding-top:12px;display:flex}._1Fxyxa_panelHint{color:var(--dsw-alias-label-tertiary,#888);font-size:13px;line-height:20px}._1Fxyxa_quote{overflow-wrap:anywhere;background:var(--dsw-specific-bubble,#f5f5f5);border-radius:8px;margin:0;padding:8px 12px;font-size:14px;line-height:22px}._1Fxyxa_meta{color:var(--dsw-alias-label-secondary,#666);grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:12px;line-height:18px;display:grid}._1Fxyxa_meta dt{color:var(--dsw-alias-label-tertiary,#999)}._1Fxyxa_meta dd{overflow-wrap:anywhere;min-width:0;margin:0}._1Fxyxa_panelNote{color:var(--dsw-alias-label-tertiary,#999);font-size:12px;line-height:18px}._1Fxyxa_panelError{color:var(--dsw-alias-state-error-primary,#d53f3f);overflow-wrap:anywhere;font-size:12px;line-height:18px}._1Fxyxa_panelAnswer{overflow-wrap:anywhere}._1Fxyxa_richAnswer{flex-direction:column;gap:12px;display:flex}._1Fxyxa_richFigure{border:1px solid var(--dsw-alias-border-l1,#ddd);background:var(--dsw-alias-bg-module,#fff);border-radius:8px;margin:0;overflow:hidden}._1Fxyxa_richSvg{object-fit:contain;width:100%;min-height:96px;max-height:360px;display:block}._1Fxyxa_richHtml{background:var(--dsw-alias-bg-module,#fff);border:0;width:100%;min-height:180px;display:block}._1Fxyxa_panelActions{align-items:center;gap:8px;display:flex}._1Fxyxa_actionButton{color:var(--dsw-alias-label-primary,#222);cursor:pointer;background:var(--dsw-alias-interactive-bg-hover-solid,#eee);border:none;border-radius:8px;padding:4px 12px;font-size:13px;line-height:20px}";
+		//#region \0dsh-css:src\client\components\CiteCiter.module.css.mjs
+		const css = ".-GREHa_menu{z-index:9999;max-width:min(520px,100vw - 32px);color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-module,#fff);border:1px solid var(--dsw-alias-border-l1,#ddd);box-shadow:var(--dsw-shadow-lv2,0 8px 24px #0000001f);pointer-events:auto;border-radius:10px;align-items:center;gap:8px;padding:8px 10px;display:flex;position:fixed}.-GREHa_menuPreview{text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:18px;overflow:hidden}.-GREHa_menuButton{color:#fff;cursor:pointer;background:var(--dsw-static-deepseek-500,#4d6bfe);border:none;border-radius:8px;flex:none;padding:4px 10px;font-size:13px;line-height:18px}.-GREHa_panel{flex-direction:column;height:100%;padding:12px;display:flex;overflow-y:auto}.-GREHa_panelHeader{flex:none;justify-content:space-between;align-items:center;display:flex}.-GREHa_panelTitle{font-size:14px;font-weight:500}.-GREHa_closeButton{width:28px;height:28px;color:var(--dsw-alias-label-secondary,#555);cursor:pointer;background:0 0;border:none;border-radius:999px;font-size:18px;line-height:1}.-GREHa_closeButton:hover{background:var(--dsw-alias-interactive-bg-hover,#0000000a)}.-GREHa_panelBody{flex-direction:column;gap:12px;padding-top:12px;display:flex}.-GREHa_panelHint{color:var(--dsw-alias-label-tertiary,#888);font-size:13px;line-height:20px}.-GREHa_quote{overflow-wrap:anywhere;background:var(--dsw-specific-bubble,#f5f5f5);border-radius:8px;margin:0;padding:8px 12px;font-size:14px;line-height:22px}.-GREHa_meta{color:var(--dsw-alias-label-secondary,#666);grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:12px;line-height:18px;display:grid}.-GREHa_meta dt{color:var(--dsw-alias-label-tertiary,#999)}.-GREHa_meta dd{overflow-wrap:anywhere;min-width:0;margin:0}.-GREHa_panelNote{color:var(--dsw-alias-label-tertiary,#999);font-size:12px;line-height:18px}.-GREHa_panelError{color:var(--dsw-alias-state-error-primary,#d53f3f);overflow-wrap:anywhere;font-size:12px;line-height:18px}.-GREHa_panelAnswer{overflow-wrap:anywhere}.-GREHa_richAnswer{flex-direction:column;gap:12px;display:flex}.-GREHa_richFigure{border:1px solid var(--dsw-alias-border-l1,#ddd);background:var(--dsw-alias-bg-module,#fff);border-radius:8px;margin:0;overflow:hidden}.-GREHa_richSvg{object-fit:contain;width:100%;min-height:96px;max-height:360px;display:block}.-GREHa_richHtml{background:var(--dsw-alias-bg-module,#fff);border:0;width:100%;min-height:180px;display:block}.-GREHa_panelActions{align-items:center;gap:8px;display:flex}.-GREHa_actionButton{color:var(--dsw-alias-label-primary,#222);cursor:pointer;background:var(--dsw-alias-interactive-bg-hover-solid,#eee);border:none;border-radius:8px;padding:4px 12px;font-size:13px;line-height:20px}";
 		const tagId = "@kirkchinese/dsh-citeciter/CiteCiter.module.css";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
 			const tag = document.createElement("style");
@@ -19,26 +19,26 @@ window.__ModuleLoader__.load({
 			document.head.appendChild(tag);
 		}
 		var CiteCiter_module_css_default = {
-			"actionButton": "_1Fxyxa_actionButton",
-			"closeButton": "_1Fxyxa_closeButton",
-			"menu": "_1Fxyxa_menu",
-			"menuButton": "_1Fxyxa_menuButton",
-			"menuPreview": "_1Fxyxa_menuPreview",
-			"meta": "_1Fxyxa_meta",
-			"panel": "_1Fxyxa_panel",
-			"panelActions": "_1Fxyxa_panelActions",
-			"panelAnswer": "_1Fxyxa_panelAnswer",
-			"panelBody": "_1Fxyxa_panelBody",
-			"panelError": "_1Fxyxa_panelError",
-			"panelHeader": "_1Fxyxa_panelHeader",
-			"panelHint": "_1Fxyxa_panelHint",
-			"panelNote": "_1Fxyxa_panelNote",
-			"panelTitle": "_1Fxyxa_panelTitle",
-			"quote": "_1Fxyxa_quote",
-			"richAnswer": "_1Fxyxa_richAnswer",
-			"richFigure": "_1Fxyxa_richFigure",
-			"richHtml": "_1Fxyxa_richHtml",
-			"richSvg": "_1Fxyxa_richSvg"
+			"actionButton": "-GREHa_actionButton",
+			"closeButton": "-GREHa_closeButton",
+			"menu": "-GREHa_menu",
+			"menuButton": "-GREHa_menuButton",
+			"menuPreview": "-GREHa_menuPreview",
+			"meta": "-GREHa_meta",
+			"panel": "-GREHa_panel",
+			"panelActions": "-GREHa_panelActions",
+			"panelAnswer": "-GREHa_panelAnswer",
+			"panelBody": "-GREHa_panelBody",
+			"panelError": "-GREHa_panelError",
+			"panelHeader": "-GREHa_panelHeader",
+			"panelHint": "-GREHa_panelHint",
+			"panelNote": "-GREHa_panelNote",
+			"panelTitle": "-GREHa_panelTitle",
+			"quote": "-GREHa_quote",
+			"richAnswer": "-GREHa_richAnswer",
+			"richFigure": "-GREHa_richFigure",
+			"richHtml": "-GREHa_richHtml",
+			"richSvg": "-GREHa_richSvg"
 		};
 		//#endregion
 		//#region lib/types/client/components/SelectionMenu.js
@@ -102,45 +102,12 @@ window.__ModuleLoader__.load({
 			};
 		}
 		//#endregion
-		//#region lib/types/client/prompt.js
-		/**
-		* Build the explanation prompt recorded into the forked child session.
-		* @param selection - quoted assistant text and its parent-log anchor.
-		* @returns model-visible prompt text.
-		*/
-		function buildPrompt(selection) {
-			return [
-				"你是 CiteCiter 解释器。只解释下面引用的内容，不执行任务、不修改任何文件，不要请求提升沙箱权限。",
-				`[引用自主会话 anchor=${selection.anchorKey}]`,
-				"<<<",
-				selection.text,
-				">>>",
-				"要求：先给一句话直觉解释，再展开原理。数学用 $...$；代码使用带语言围栏；如需图，输出一个 ```svg 围栏（不要 script/foreignObject）。不要输出与引用无关的内容。"
-			].join("\n\n");
-		}
-		//#endregion
 		//#region lib/types/client/explainer-controller.js
-		/**
-		* Bind the explanation state machine to a supplied snapshot store.
-		*
-		* A parent or anchor change detaches the old child and forks a correctly scoped
-		* one. Work is serialized so repeated selections cannot create parallel children, and disposal
-		* invalidates every in-flight await before it can install another subscription.
-		*
-		* @param sessions - DSH browser session service.
-		* @param store - plugin-owned observable state store.
-		* @returns observable explainer state and lifecycle actions.
-		*/
-		function createExplainerController(sessions, store) {
-			let child = null;
-			let parentId = null;
-			let forkSeq = null;
-			let unsubscribeChild = null;
+		/** The Host owns the hidden fork and its history; the browser never stages it. */
+		function createExplainerController(resolveSource, transport, store) {
 			let disposed = false;
-			let epoch = 0;
-			let startQueue = Promise.resolve();
-			let stopQueue = Promise.resolve();
-			const baselineAssistantKeys = /* @__PURE__ */ new Set();
+			let active = null;
+			let queue = Promise.resolve();
 			const update = (mutator) => {
 				if (!disposed) store.update(mutator);
 			};
@@ -150,230 +117,71 @@ window.__ModuleLoader__.load({
 					draft.error = error instanceof Error ? error.message : String(error);
 				});
 			};
-			const isActive = (operationEpoch) => !disposed && operationEpoch === epoch;
-			const detachChild = () => {
-				epoch++;
-				unsubscribeChild?.();
-				unsubscribeChild = null;
-				child = null;
-				parentId = null;
-				forkSeq = null;
-				baselineAssistantKeys.clear();
-			};
-			const updateFromChild = () => {
-				const session = child;
-				if (session === null || disposed) return;
-				const snapshot = session.getSnapshot();
-				let answer = null;
-				for (const node of snapshot.chat.nodes.values()) {
-					if (node.kind !== "assistant-step" || baselineAssistantKeys.has(node.key)) continue;
-					const candidate = readAssistantAnswer(node.data);
-					if (candidate !== null && (answer === null || node.anchorSeq >= answer.anchorSeq)) answer = {
-						...candidate,
-						anchorSeq: node.anchorSeq
-					};
-				}
-				if (answer !== null) {
-					update((draft) => {
-						draft.phase = answer.status === "running" ? "running" : "settled";
-						draft.answerText = answer.text;
-						draft.error = null;
-					});
-					return;
-				}
-				if (snapshot.promptError !== null) {
-					fail(snapshot.promptError.error.message);
-					return;
-				}
-				if (snapshot.lastAgentError !== null) {
-					fail(snapshot.lastAgentError);
-					return;
-				}
-				if (snapshot.running) update((draft) => {
-					draft.phase = "running";
+			const stop = async () => {
+				const operation = active;
+				if (operation === null) return;
+				operation.abort.abort();
+				await operation.done.catch(() => {});
+				if (!disposed) update((draft) => {
+					draft.phase = "ready";
+					draft.error = null;
 				});
 			};
-			const rememberAssistantKeys = (session) => {
-				for (const node of session.getSnapshot().chat.nodes.values()) if (node.kind === "assistant-step") baselineAssistantKeys.add(node.key);
-			};
-			const attachChild = (session, sourceId, atSeq) => {
-				child = session;
-				parentId = sourceId;
-				forkSeq = atSeq;
-				baselineAssistantKeys.clear();
-				rememberAssistantKeys(session);
-				unsubscribeChild = session.subscribe(updateFromChild);
-			};
-			const prompt = async (selection, operationEpoch) => {
-				const session = child;
-				if (session === null || !isActive(operationEpoch)) return;
-				rememberAssistantKeys(session);
+			const run = async (selection) => {
+				if (disposed) return;
 				update((draft) => {
-					draft.phase = "running";
+					draft.phase = "creating";
+					draft.childId = null;
 					draft.selection = selection;
 					draft.answerText = null;
 					draft.error = null;
 				});
-				let result;
+				let source;
 				try {
-					result = await session.prompt([{
-						type: "text",
-						text: buildPrompt(selection)
-					}], "queue");
+					source = resolveSource(selection);
 				} catch (error) {
-					if (isActive(operationEpoch)) fail(error);
+					fail(error);
 					return;
 				}
-				if (!isActive(operationEpoch)) return;
-				if (!result.ok) {
-					fail(result.error.message);
-					return;
-				}
-				updateFromChild();
-			};
-			const runStart = async (selection) => {
-				if (disposed) return;
-				const current = sessions.list.getSnapshot().current;
-				if (current === void 0) {
-					fail("no current session");
-					return;
-				}
-				update((draft) => {
-					draft.selection = selection;
-					draft.error = null;
-				});
-				const sourceBinding = sessions.binding(current);
-				if (sourceBinding === void 0) {
-					fail(`current session "${current}" is not locally addressable`);
-					return;
-				}
-				const sourceNode = sourceBinding.session.getSnapshot().chat.nodes.get(selection.anchorKey);
-				if (sourceNode === void 0 || sourceNode.kind !== "assistant-step") {
-					fail("selected assistant context is no longer available");
-					return;
-				}
-				const sourceAnswer = readAssistantAnswer(sourceNode.data);
-				if (sourceAnswer === null || sourceAnswer.status === "running") {
-					fail("selected assistant response is not complete");
-					return;
-				}
-				if (sourceNode.location.kind !== "step" || sourceNode.location.turn.status !== "closed") {
-					fail("selected assistant turn is not complete");
-					return;
-				}
-				const atSeq = sourceNode.anchorSeq;
-				if (child !== null && parentId === current && forkSeq === atSeq) {
-					await prompt(selection, epoch);
-					return;
-				}
-				if (child !== null) {
-					detachChild();
+				const abort = new AbortController();
+				const done = (async () => {
 					update((draft) => {
-						draft.phase = "idle";
-						draft.childId = null;
-						draft.answerText = null;
+						draft.phase = "running";
 					});
-				}
-				update((draft) => {
-					draft.phase = "creating";
-				});
-				const operationEpoch = epoch;
-				let childId;
-				try {
-					childId = await sessions.fork({
-						sessionId: current,
-						atSeq
+					const result = await transport.explain(source, selection, abort.signal);
+					if (disposed || abort.signal.aborted) return;
+					update((draft) => {
+						draft.phase = "settled";
+						draft.childId = result.childId;
+						draft.answerText = result.answerText;
+						draft.error = null;
 					});
-				} catch (error) {
-					if (isActive(operationEpoch)) fail(error);
-					return;
-				}
-				if (!isActive(operationEpoch)) return;
-				const binding = sessions.binding(childId);
-				if (binding === void 0) {
-					fail(`fork child "${childId}" is not locally addressable`);
-					return;
-				}
-				const session = binding.session;
+				})();
+				active = {
+					abort,
+					done
+				};
 				try {
-					await session.open();
+					await done;
 				} catch (error) {
-					if (isActive(operationEpoch)) fail(error);
-					return;
+					if (!abort.signal.aborted) fail(error);
+				} finally {
+					if (active?.done === done) active = null;
 				}
-				if (!isActive(operationEpoch)) return;
-				attachChild(session, current, atSeq);
-				update((draft) => {
-					draft.childId = childId;
-					draft.phase = "ready";
-				});
-				let permission;
-				try {
-					permission = await session.command("/permission read-only");
-				} catch (error) {
-					if (isActive(operationEpoch)) fail(error);
-					return;
-				}
-				if (!isActive(operationEpoch)) return;
-				if (!permission.ok) {
-					fail(`read-only switch failed: ${permission.error.message}`);
-					return;
-				}
-				if (!permission.value.matched) {
-					fail("read-only switch failed: permission command was not recognized");
-					return;
-				}
-				await prompt(selection, operationEpoch);
 			};
 			const start = (selection) => {
 				if (disposed) return Promise.resolve();
-				const task = startQueue.then(async () => {
-					try {
-						await runStart(selection);
-					} catch (error) {
-						fail(error);
-					}
-				});
-				startQueue = task;
-				return task;
-			};
-			const runStop = async () => {
-				const session = child;
-				const operationEpoch = epoch;
-				if (session === null || !isActive(operationEpoch)) return;
-				try {
-					const result = await session.cancel();
-					if (!isActive(operationEpoch)) return;
-					if (!result.ok) {
-						fail(result.error.message);
-						return;
-					}
-				} catch (error) {
-					if (isActive(operationEpoch)) fail(error);
-					return;
-				}
-				update((draft) => {
-					draft.phase = "ready";
-				});
-			};
-			const stop = () => {
-				if (disposed) return Promise.resolve();
-				const task = stopQueue.then(async () => {
-					try {
-						await runStop();
-					} catch (error) {
-						fail(error);
-					}
-				});
-				stopQueue = task;
+				active?.abort.abort();
+				const task = queue.then(() => run(selection));
+				queue = task.catch(() => {});
 				return task;
 			};
 			const dispose = async () => {
-				if (!disposed) {
-					detachChild();
-					disposed = true;
-				}
-				await Promise.all([startQueue, stopQueue]);
+				if (disposed) return;
+				disposed = true;
+				const operation = active;
+				operation?.abort.abort();
+				await Promise.allSettled([queue, operation?.done ?? Promise.resolve()]);
 			};
 			return {
 				getSnapshot: store.getSnapshot,
@@ -392,13 +200,52 @@ window.__ModuleLoader__.load({
 			answerText: null,
 			error: null
 		};
-		/**
-		* Create an explainer and its plugin-owned DSH snapshot store.
-		* @param sessions - DSH browser session service.
-		* @returns observable explainer state and lifecycle actions.
-		*/
-		function createExplainer(sessions) {
-			return createExplainerController(sessions, (0, _deepseek_ai_dsh_client_runtime_client.createSnapshotStore)(EMPTY));
+		const EXPLAIN_PATH = "/api/citeciter.explain";
+		function hostBase() {
+			const origin = globalThis.location?.origin;
+			return origin !== void 0 && origin !== "null" ? origin : "http://dsh.internal";
+		}
+		const httpExplainTransport = { async explain(source, selection, signal) {
+			const response = await fetch(new URL(EXPLAIN_PATH, hostBase()), {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({
+					sourceSessionId: source.sessionId,
+					atSeq: source.atSeq,
+					selection
+				}),
+				signal
+			});
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				const message = typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string" ? payload.error : `CiteCiter Host request failed: HTTP ${String(response.status)}`;
+				throw new Error(message);
+			}
+			if (typeof payload !== "object" || payload === null || !("childId" in payload) || typeof payload.childId !== "string" || !("answerText" in payload) || typeof payload.answerText !== "string") throw new Error("CiteCiter Host returned an invalid explanation response");
+			return {
+				childId: payload.childId,
+				answerText: payload.answerText
+			};
+		} };
+		function sourceResolver(sessions, uiConversation) {
+			return (selection) => {
+				const current = sessions.list.getSnapshot().current;
+				if (current === void 0) throw new Error("no current session");
+				const binding = sessions.binding(current);
+				if (binding === void 0) throw new Error(`current session "${current}" is not locally addressable`);
+				const node = uiConversation.binding(binding).target("chat").getSnapshot()?.nodes.get(selection.anchorKey);
+				if (node === void 0 || node.kind !== "assistant-step") throw new Error("selected assistant context is no longer available");
+				const answer = readAssistantAnswer(node.data);
+				if (answer === null || answer.status === "running") throw new Error("selected assistant response is not complete");
+				if (node.location.kind !== "step" || node.location.turn.status !== "closed") throw new Error("selected assistant turn is not complete");
+				return {
+					sessionId: current,
+					atSeq: node.anchorSeq
+				};
+			};
+		}
+		function createExplainer(sessions, uiConversation, transport = httpExplainTransport) {
+			return createExplainerController(sourceResolver(sessions, uiConversation), transport, (0, _deepseek_ai_dsh_client_store.createSnapshotStore)(EMPTY));
 		}
 		//#endregion
 		//#region lib/types/client/rich-content.js
@@ -513,7 +360,14 @@ window.__ModuleLoader__.load({
 					}, key);
 					return (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.MarkdownText, {
 						text: segment.text,
-						streaming
+						streaming,
+						labels: {
+							code: {
+								copyLabel: "复制代码",
+								copiedLabel: "已复制"
+							},
+							footnotes: "脚注"
+						}
 					}, key);
 				})
 			});
@@ -691,16 +545,20 @@ window.__ModuleLoader__.load({
 		const inject = [
 			"layout",
 			"slots",
-			"sessions"
+			"sessions",
+			"uiConversation"
 		];
 		/**
 		* Register the selection listener, overlay entry, and details-panel lifecycle.
 		* @param ctx - Cordis browser context with layout, slots, and sessions services.
 		*/
 		function apply(ctx) {
-			const { layout, sessions, slots } = ctx;
+			const { layout } = ctx;
+			const sessions = Reflect.get(ctx, "sessions");
+			const slots = Reflect.get(ctx, "slots");
+			const uiConversation = Reflect.get(ctx, "uiConversation");
 			const bus = new CiteBus((error) => ctx.logger.warn("citeciter selection listener failed", error));
-			const explainer = createExplainer(sessions);
+			const explainer = createExplainer(sessions, uiConversation);
 			let detailsInjectController = null;
 			let detailsDisposer = null;
 			let panelOpen = false;
