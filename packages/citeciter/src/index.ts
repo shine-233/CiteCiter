@@ -9,7 +9,7 @@ import { buildPrompt } from './client/prompt.ts'
 import type { CiteSelection } from './client/types.ts'
 
 export const name = '@kirkchinese/dsh-citeciter'
-export const inject = ['connection', 'sessionController', 'commands']
+export const inject = ['connection', 'sessionController', 'commands', 'sessionQuery']
 export const EXPLAIN_PATH = '/api/citeciter.explain'
 
 interface ConnectionService {
@@ -124,7 +124,14 @@ async function explain(ctx: Context, input: ExplainRequest, signal: AbortSignal)
   if (permission === undefined) throw new Error('read-only switch failed: permission command was not recognized')
   if (permission.result.kind === 'error') throw new Error(`read-only switch failed: ${permission.result.text}`)
 
-  const afterSeq = agent.session.events.at(-1)?.seq ?? -1
+  // 0.1.5: Session's event log is private; the public read face is the
+  // session-query service. Watermark and answer extraction both read through
+  // cloned-log snapshots taken before and after the prompted turn.
+  const sessionQuery = Reflect.get(ctx, 'sessionQuery') as {
+    readSession(sessionId: SessionId): Promise<{ events: readonly SessionEvent[] }>
+  }
+  const beforeTurn = await sessionQuery.readSession(fork.sessionId)
+  const afterSeq = beforeTurn.events.at(-1)?.seq ?? -1
   const turn = waitForTurn(ctx, agent, afterSeq, signal)
   try {
     await ctx.sessionController.prompt({
@@ -138,7 +145,8 @@ async function explain(ctx: Context, input: ExplainRequest, signal: AbortSignal)
     try { ctx.sessionController.cancel({ sessionId: fork.sessionId }) } catch {}
     throw error
   }
-  const answerText = assistantText(agent.session.events, afterSeq)
+  const afterTurn = await sessionQuery.readSession(fork.sessionId)
+  const answerText = assistantText(afterTurn.events, afterSeq)
   if (answerText === '') throw new Error('explanation turn settled without assistant text')
   return { childId: fork.sessionId, answerText }
 }
